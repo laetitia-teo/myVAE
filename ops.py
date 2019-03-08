@@ -18,31 +18,22 @@ def conv2d(X, size, num_f, name):
         conv = tf.nn.conv2d(X, W, strides=[1, 2, 2, 1], padding="SAME") + b
     return conv
 
-def conv2d_tr(X, size, num_f, output_shape, name):
+def deconv2d(X, size, output_shape, name):
     """
-    Transpose of Conv2D layer
+    Transpose of Conv2D layer, improperly called deconvolution layer
     
     Args :
-        - X_in (Tensor): input;
+        - X (Tensor): input;
         - size (Integer) : size (height and width) of the filters;
-        - num_f (Integer): number of filters;
+        - output_shape (list of Integers): shape of the output Tensor;
+        - name (str): name of the operation;
     Returns :
         - X_out (Tensor): output;
     """
     with tf.variable_scope(name):
         init = tf.truncated_normal_initializer(stddev=0.02)
         W = tf.get_variable('W', 
-                            [size, size, output_shape[-1], num_f], 
-                            initializer=init)
-        #b = tf.get_variable('b', [num_f], initializer=tf.constant_initializer(0.0))
-        conv_t = tf.nn.conv2d_transpose(X, W, output_shape, [1, 2, 2, 1])
-        return conv_t
-
-def deconv2d(X, size, num_f, output_shape, name):
-    with tf.variable_scope(name):
-        init = tf.truncated_normal_initializer(stddev=0.02)
-        W = tf.get_variable('W', 
-                            [size, size, output_shape[-1], num_f],
+                            [size, size, output_shape[-1], X.shape[-1]],
                             initializer=init)
                             
         b = tf.get_variable('b',
@@ -63,10 +54,11 @@ def dense(X, units, name):
         - name (str) : name of the operation;
     """
     with tf.variable_scope(name):
-        init = tf.random_normal_intializer(stddev=0.2)
+        init = tf.random_normal_initializer(stddev=0.2)
         W = tf.get_variable('W', [X.shape[-1], units], initializer=init)
         b = tf.get_variable('b', [units], initializer=tf.constant_initializer(0.0))
         dense = tf.matmul(X, W) + b
+    return dense
 
 
 
