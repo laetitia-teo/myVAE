@@ -11,10 +11,10 @@ class VAE():
         # Data and training :
         self.batch_size = 64
         self.dataset = MnistDataset(self.batch_size)
-        self.n_epochs = 20
+        self.n_epochs = 10
         
         # Model hyperparameters :
-        self.z_size = 20
+        self.z_size = 25
         
         # TODO : make this more modular, adapt to other datasets
         self.images = tf.placeholder(tf.float32, [None, 28, 28, 1])
@@ -22,10 +22,10 @@ class VAE():
         # estimators of mean and sdt in latent space
         z_mu, z_sigma = self.encoder(self.images)
         eps = tf.random.normal([self.batch_size, self.z_size], 0, 1, dtype=tf.float32)
-        z = z_mu + (z_sigma * eps)
+        self.z = z_mu + (z_sigma * eps)
         
         # generated images
-        self.gen_images = self.decoder(z)
+        self.gen_images = self.decoder(self.z)
         
         tiny = 1e-7 # to avoid nan from logs
         
@@ -33,7 +33,7 @@ class VAE():
         self.lat_loss = 0.5 * tf.reduce_sum(tf.square(z_mu) + tf.square(z_sigma)
             - tf.log(tf.square(z_sigma)) - 1, 1)
         
-        # generative loss : distance between 
+        # generative loss : distance between original image and reconstructed one
         flat = tf.reshape(self.images, shape=[self.batch_size, 28*28])
         flat = tf.clip_by_value(flat, tiny, 1 - tiny)
         gen_flat = tf.reshape(self.gen_images, shape=[self.batch_size, 28*28])
@@ -93,7 +93,7 @@ class VAE():
     @staticmethod
     def plot_grid(images):
         """
-        Utility function for plotting 8x8 grids of images.
+        Utility function for plotting 8x8 grids of mnist images.
         """
         for i in range(8):
             for j in range(8):
@@ -137,12 +137,26 @@ class VAE():
         Plots a visualization of generated samples in a 8x8 grid.
         (Use after training for interesting results, of course)
         """
-        zs = np.random.normal([64, self.z_size]) # 64 normal vectors used
+        z_noise = np.random.normal(size=[64, self.z_size]) # 64 normal vectors used
+        print(z_noise.shape)
+        with tf.Session() as sess:
+            try:
+                saver = tf.train.Saver()
+                saver.restore(sess, self.save_path)
+            except:
+                sess.run(tf.global_variables_initializer())
+            gen_imgs = sess.run(self.gen_images, 
+                                feed_dict={self.z: z_noise})
+        self.plot_grid(gen_imgs[:, :, :, 0])
         
     
     def train(self, vis=False):
         """
         Train the model on the dataset.
+        
+        Arguments:
+            - vis (bool) : whether to plot a reconstruction image at the end of
+            training.
         """
         saver = tf.train.Saver()
         with tf.Session() as sess:
@@ -156,7 +170,7 @@ class VAE():
                 if vis:
                     self.recode_vis(sess) # Plot some reconstructed images
             save_path = saver.save(sess, self.save_path)
-            print("Model saved in path : %s" % save_path)
+            print('Model saved in path : %s' % save_path)
 
 
 
